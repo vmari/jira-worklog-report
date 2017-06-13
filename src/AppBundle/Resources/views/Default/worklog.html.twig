@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <br>
+    <div class="container">
+        <a href="{{ path('index') }}" class="btn btn-sm btn-secondary float-right">Exit</a>
+        <!--<a href="{{ path('export',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d') }) }}"
+           class="btn btn-sm btn-secondary float-right mr-2">XLS</a>-->
+        <span class="float-right mr-2">
+            <button class="btn btn-primary btn-sm" id="daterange"><b></b></button>
+        </span>
+        <h3>Logs in {{ project }}</h3>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Worklog ID</th>
+                <th>Issue</th>
+                <th>Author</th>
+                <th>Time spent</th>
+                <th>Started</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for worklog in data %}
+                <tr>
+                    <th scope="row">
+                        <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}?focusedWorklogId={{ worklog.id }}&page=com.atlassian.jira.plugin.system.issuetabpanels%3Aworklog-tabpanel#worklog-{{ worklog.id }}"
+                           target="_blank" title="{{ worklog.comment }}">
+                            {{ worklog.id }}
+                        </a>
+                    </th>
+                    <td>
+                        <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}" target="_blank"
+                           title="{{ worklog.issue.fields.summary }}">
+                            {{ worklog.issue.key }}
+                        </a>
+                    </td>
+                    <td><span title="{{ worklog.author.displayName }}">{{ worklog.author.key }}</span></td>
+                    <td>{{ worklog.timeSpent }}</td>
+                    <td>{{ worklog.started|date('d/m/Y H:i') }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3">
+                        <p class="text-center lead font-weight-bold">
+                            logs not found
+                        </p>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <h3>Total</h3>
+        <table class="table">
+            <thead>
+            <tr>
+                <th>User</th>
+                <th>Time spent</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user, seconds in teamTotals %}
+                <tr>
+                    <td>{{ user }}</td>
+                    <td>{{ (seconds / 60 / 60)|number_format(2) }}h</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <th>Total</th>
+                <th>{{ (total / 60 / 60)|number_format(2) }}h</th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script type="text/javascript" src="{{ asset('js/moment.min.js') }}"></script>
+    <script type="text/javascript" src="{{ asset('js/daterangepicker.js') }}"></script>
+    <script>
+        dateRangePickerLocale = {
+            "format": "YYYY-MM-DD"
+        };
+        function loadEstadistica(start, end) {
+            window.location.replace("/{{ project }}/worklog/" + start.format('YYYY-MM-DD') + "/" + end.format('YYYY-MM-DD'));
+        }
+        $(document).ready(function () {
+            var start = moment("{{ from|date('Y-m-d') }}");
+            var end = moment("{{ to|date('Y-m-d') }}");
+            $('#daterange b').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
+            $('#daterange').daterangepicker({
+                startDate: start,
+                endDate: end,
+                autoUpdateInput: false,
+                opens: 'left',
+                ranges: {
+                    'Today': [moment(), moment()],
+                    'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Last week': [moment().subtract(6, 'days'), moment()],
+                    'Last month': [moment().subtract(29, 'days'), moment()],
+                    'This month': [moment().startOf('month'), moment().endOf('month')],
+                },
+                "locale": dateRangePickerLocale
+            }, loadEstadistica);
+        });
+    </script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link type="text/css" rel="stylesheet" href="{{ asset('css/daterangepicker.css') }}"/>
+{% endblock %}

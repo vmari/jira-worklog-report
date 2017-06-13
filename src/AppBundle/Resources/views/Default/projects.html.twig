@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="col-xs-12 col-sm-6 push-sm-3">
+        <br>
+        <div class="panel panel-default">
+            <a href="{{ path('index') }}" class="btn btn-sm btn-primary float-right">&lt; Go back</a>
+            <h3>Projects in <i>{{ server.baseUrl }}</i></h3>
+            <hr>
+            <div class="list-group">
+                {% for project in projects %}
+                    <a href="{{ path('worklog',{ project: project.key }) }}"
+                       class="list-group-item list-group-item-action">
+                        <img src="{{ project.avatarUrls['32x32'] }}" height="32" width="32" class="mr-2"/>
+                        {{ project.key }} - {{ project.name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

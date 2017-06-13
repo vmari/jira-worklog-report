@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}"/>
+    <title>{% block title %}JIRA worklog report{% endblock %}</title>
+    <link rel="stylesheet" href="{{ asset('css/bootstrap.min.css') }}" />
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+{% block body %}{% endblock %}
+
+<script src="{{ asset('js/jquery-3.1.1.slim.min.js') }}"></script>
+<script src="{{ asset('js/tether.min.js') }}"></script>
+<script src="{{ asset('js/bootstrap.min.js') }}"></script>
+{% block javascripts %}{% endblock %}
+</body>
+</html>
