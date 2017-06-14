@@ -76,7 +76,6 @@ class DefaultController extends Controller
      */
     public function worklogAction(Request $request, $project, \DateTime $from = null, \DateTime $to = null)
     {
-        dump($project);
         if (!$from) {
             /** @var \DateTime $from */
             $from = new \DateTime('now');
@@ -114,7 +113,6 @@ class DefaultController extends Controller
             ));
             $iss = new IssueService($conf);
             $issues = $iss->search($jql, 0, 1000, ['summary', 'worklog']);
-            dump($issues);
             $worklogs = array();
             $teamLogs = array();
             foreach ($issues->issues as $issue) {
