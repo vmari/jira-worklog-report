@@ -2,7 +2,7 @@
 <br>
 <div class="container">
     <a href="{{ path('index') }}" class="btn btn-sm btn-secondary float-right">Exit</a>
-    <a href="{{ path('export',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d') }) }}" class="btn btn-sm btn-secondary float-right mr-2">XLS</a>
+    <a href="{{ path('export',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d') }) }}" class="btn btn-sm btn-secondary float-right mr-2">CSV</a>
     <span class="float-right mr-2">
                 <button class="btn btn-primary btn-sm" id="daterange"><b></b></button>
             </span>

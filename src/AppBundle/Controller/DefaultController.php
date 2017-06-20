@@ -12,7 +12,8 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class DefaultController extends Controller
 {
@@ -173,17 +174,11 @@ class DefaultController extends Controller
 
         fclose($fp);
         
-        $response = new Response();
-
-        $response->headers->set('Cache-Control', 'private');
-        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s";', $filename));
-        $response->headers->set('Content-Type', mime_content_type($filename));
-        $response->headers->set('Content-length', filesize($filename));
-        $response->sendHeaders();
-
-        $response->setContent(file_get_contents($filename));
-
-        unlink($filename);
+        $response = new BinaryFileResponse($filename);
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $filename
+        );
 
         return $response;
      }
