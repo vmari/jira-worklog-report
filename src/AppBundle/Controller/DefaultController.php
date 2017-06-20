@@ -160,15 +160,15 @@ class DefaultController extends Controller
         }
         
         // Put the headers
-        fputcsv($fp, array('Worklog', 'Issue', 'Author', 'Time Spent', 'Started'));
+        fputcsv($fp, array('Worklog', 'Issue', 'Author', 'Time Spent (h)', 'Started'));
 
         foreach($data["worklogs"] as $worklog) {
             fputcsv($fp, array(
                 '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '","' . $worklog->id . '")',
                 '=HYPERLINK("'. $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
                 $worklog->author->displayName,
-                $worklog->timeSpent,
-                date_format($worklog->started, 'Y-m-d')
+                number_format(floatval($worklog->timeSpentSeconds) / 60 / 60,2,',',''),
+                date_format($worklog->started, 'Y-m-d H:i')
             ));
         }
 

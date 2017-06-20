@@ -4,7 +4,8 @@
 Install dependencies
 ```bash
 composer install
-sudo apt-get install php-curl
+cd web && bower install
+sudo apt install php-curl
 ```
 
 Start development server

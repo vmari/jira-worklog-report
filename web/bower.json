@@ -1,0 +1,23 @@
+{
+  "name": "web",
+  "homepage": "https://github.com/ubykuo/jira-worklog-report",
+  "authors": [
+    "Valentin Mari <valen.mari@ubykuo.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "v4.0.0-alpha.6",
+    "glyphicons": "^0.0.2",
+    "moment": "^2.18.1",
+    "bootstrap-daterangepicker": "^2.1.25"
+  }
+}
