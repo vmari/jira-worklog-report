@@ -16,3 +16,5 @@
 /vendor/
 /web/bundles/
 .idea
+report.csv
+web/bower_components
