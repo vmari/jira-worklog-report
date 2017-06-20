@@ -4,7 +4,6 @@
 Install dependencies
 ```bash
 composer install
-bower install
 sudo apt install php-curl
 ```
 
