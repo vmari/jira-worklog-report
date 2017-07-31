@@ -151,23 +151,82 @@ class DefaultController extends Controller
             $this->addFlash('danger', 'Error, maybe project not exists.');
             return $this->redirectToRoute('index');
         }
+      
+        // Get the users and group their worklogs
+        $userWorklogs = array();
+        foreach($data["worklogs"] as $worklog) {
+            $userName = $worklog->author->displayName;
+            if (!in_array($userName, array_keys($userWorklogs))) {
+                $userWorklogs[$userName] = array();
+            }
+            $userWorklog = array(
+                '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '","' . $worklog->id . '")',
+                '=HYPERLINK("'. $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
+                number_format(floatval($worklog->timeSpentSeconds) / 60 / 60,2,',',''),
+                date_format($worklog->started, 'Y-m-d H:i'),
+                " "
+            );
+            array_push($userWorklogs[$userName], $userWorklog);
+        }
+
+        // Get the total time of each user
+        $totals = array();
+        foreach ($data["teamTotals"] as $total) {
+            array_push($totals, $total);
+        }
+        $index = 0;
+        foreach (array_keys($userWorklogs) as $key) {
+            array_push($userWorklogs[$key], array("", "", "Total: " . number_format($totals[$index] / 60 / 60, 2) . "h", "", "" ));
+            $index++;
+        }
+
+        // Get name headers
+        $namesHeaders = [];
+        foreach(array_keys($userWorklogs) as $key) {
+            array_push($namesHeaders, "", $key, "", "", "");
+        }
+
+        // Get the worklog headers
+        $worklogHeaders = [];
+        foreach(array_keys($userWorklogs) as $key) {
+            array_push($worklogHeaders, 'Worklog', 'Issue', 'Time Spent (h)', 'Started', " ");
+        }
 
         // Put the headers
-        fputcsv($fp, array('Worklog', 'Issue', 'Author', 'Time Spent (h)', 'Started'));
-
-        foreach ($data["worklogs"] as $worklog) {
-            fputcsv($fp, array(
-                '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '","' . $worklog->id . '")',
-                '=HYPERLINK("' . $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
-                $worklog->author->displayName,
-                number_format(floatval($worklog->timeSpentSeconds) / 60 / 60, 2, ',', ''),
-                date_format($worklog->started, 'Y-m-d H:i')
-            ));
+        fputcsv($fp, $namesHeaders);
+        fputcsv($fp, $worklogHeaders);
+        
+        // Get the max amount of worklogs (number of rows)
+        $maxUserWorklogs = -1;
+        foreach (array_keys($userWorklogs) as $key) {
+            if (sizeof($userWorklogs[$key]) > $maxUserWorklogs) {
+                $maxUserWorklogs = sizeof($userWorklogs[$key]);
+            }
         }
+
+        // Merge user's worklogs to create the rows
+        $rowWorklogs = array();
+        for ($i=0; $i < $maxUserWorklogs; $i++) { 
+            $rowWorklogs[$i] = array();
+            foreach (array_keys($userWorklogs) as $key) {
+                $worklog = array_shift($userWorklogs[$key]);
+                if (is_null($worklog)) {
+                    $worklog = array("","","","","");
+                }
+                $rowWorklogs[$i] = array_merge($rowWorklogs[$i], $worklog);
+            }
+        }
+
+        // Put the worklogs (rows)
+        for ($i=0; $i < $maxUserWorklogs; $i++) { 
+            fputcsv($fp, $rowWorklogs[$i]);
+        } 
 
         fseek($fp, 0);
 
         $csv = stream_get_contents($fp);
+      
+        fclose($fp);
         $csv = mb_convert_encoding($csv, "UTF-8");
 
         $response = new Response($csv);
