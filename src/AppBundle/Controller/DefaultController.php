@@ -12,8 +12,7 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\Response;
 
 class DefaultController extends Controller
 {
@@ -30,7 +29,7 @@ class DefaultController extends Controller
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            $js->setBaseUrl('https://'.parse_url($js->getBaseUrl(), PHP_URL_HOST));
+            $js->setBaseUrl('https://' . parse_url($js->getBaseUrl(), PHP_URL_HOST));
             $request->getSession()->set('server', $js);
             return $this->redirectToRoute('projects');
         }
@@ -71,7 +70,6 @@ class DefaultController extends Controller
 
     /**
      * @Route("/{project}/worklog/{from}/{to}", name="worklog")
-     * @Route("/{project}/worklog/{from}/{to}/export", name="export")
      *
      * @ParamConverter("from", options={"format": "Y-m-d"})
      * @ParamConverter("to", options={"format": "Y-m-d"})
@@ -98,11 +96,9 @@ class DefaultController extends Controller
             return $this->redirectToRoute('index');
         }
 
-        $jql = $this->getWorklogQuery($project, $from, $to);
-
         try {
             $issues = $this->getIssues($server, $project, $from, $to);
-            $data   = $this->parseIssues($issues, $from, $to);
+            $data = $this->parseIssues($issues, $from, $to);
         } catch (JiraException $e) {
             $this->addFlash('danger', 'Error, maybe project not exists.');
             return $this->redirectToRoute('index');
@@ -125,9 +121,9 @@ class DefaultController extends Controller
      * @ParamConverter("from", options={"format": "Y-m-d"})
      * @ParamConverter("to", options={"format": "Y-m-d"})
      */
-     public function exportAction(Request $request, $project, \DateTime $from = null, \DateTime $to = null)
-     {
-         if (!$from) {
+    public function exportAction(Request $request, $project, \DateTime $from = null, \DateTime $to = null)
+    {
+        if (!$from) {
             /** @var \DateTime $from */
             $from = new \DateTime('now');
         }
@@ -142,23 +138,20 @@ class DefaultController extends Controller
 
         /** @var JiraServer $server */
         $server = $request->getSession()->get('server');
-        $filename = 'report.csv';
-        $fp = fopen($filename, 'w+');
+        $fp = fopen('php://memory', 'w');
 
         if (!$server) {
             return $this->redirectToRoute('index');
         }
 
-        $jql = $this->getWorklogQuery($project, $from, $to);
-
         try {
             $issues = $this->getIssues($server, $project, $from, $to);
-            $data   = $this->parseIssues($issues, $from, $to);
+            $data = $this->parseIssues($issues, $from, $to);
         } catch (JiraException $e) {
             $this->addFlash('danger', 'Error, maybe project not exists.');
             return $this->redirectToRoute('index');
         }
-
+      
         // Get the users and group their worklogs
         $userWorklogs = array();
         foreach($data["worklogs"] as $worklog) {
@@ -227,93 +220,97 @@ class DefaultController extends Controller
         // Put the worklogs (rows)
         for ($i=0; $i < $maxUserWorklogs; $i++) { 
             fputcsv($fp, $rowWorklogs[$i]);
-        }        
+        } 
 
+        fseek($fp, 0);
+
+        $csv = stream_get_contents($fp);
+      
         fclose($fp);
-        
-        $response = new BinaryFileResponse($filename);
-        $response->setContentDisposition(
-            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-            $filename
-        );
+        $csv = mb_convert_encoding($csv, "UTF-8");
 
+        $response = new Response($csv);
+        $filename = $from->format('d-m-Y') . '-' . $to->format('d-m-Y') . '.csv';
+        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s";', $filename));
+        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
         return $response;
-     }
 
-     private function getWorklogQuery($project, \DateTime $from, \DateTime $to)
-     {
-         return 'project = ' . $project . ' and created <= "' .
+    }
+
+    private function getWorklogQuery($project, \DateTime $from, \DateTime $to)
+    {
+        return 'project = ' . $project . ' and created <= "' .
             $to->format('Y-m-d') . '" and updated >= "' .
             $from->format('Y-m-d') . '" and timespent > 0';
-     }
+    }
 
-     private function getServerConfig($server)
-     {
+    private function getServerConfig($server)
+    {
         return new ArrayConfiguration(array(
             'jiraHost' => $server->getBaseUrl(),
             'jiraUser' => $server->getUsername(),
             'jiraPassword' => $server->getPasswd()
         ));
-     }
+    }
 
-     private function parseIssues($issues, $from, $to)
-     {
-         $parsedData = array(
-            "teamTotals"   => array(),
+    private function parseIssues($issues, $from, $to)
+    {
+        $parsedData = array(
+            "teamTotals" => array(),
             "totalSeconds" => 0,
-            "worklogs"     => array(),
-            "teamLogs"     => array()
-         );
-         
-         foreach ($issues->issues as $issue) {
-                if ($issue->fields->worklog) {
-                    foreach ($issue->fields->worklog->worklogs as $worklog) {
-                        $worklog->created = new \DateTime($worklog->created);
-                        $worklog->updated = new \DateTime($worklog->updated);
-                        $worklog->started = new \DateTime($worklog->started);
-                        $worklog->issue = $issue;
+            "worklogs" => array(),
+            "teamLogs" => array()
+        );
 
-                        if ($worklog->started < $to && $worklog->started > $from) {
-                            $parsedData["worklogs"][] = $worklog;
-                            $parsedData["teamLogs"][$worklog->author->key][] = $worklog;
-                            $parsedData["totalSeconds"] += $worklog->timeSpentSeconds;
-                        }
+        foreach ($issues->issues as $issue) {
+            if ($issue->fields->worklog) {
+                foreach ($issue->fields->worklog->worklogs as $worklog) {
+                    $worklog->created = new \DateTime($worklog->created);
+                    $worklog->updated = new \DateTime($worklog->updated);
+                    $worklog->started = new \DateTime($worklog->started);
+                    $worklog->issue = $issue;
+
+                    if ($worklog->started < $to && $worklog->started > $from) {
+                        $parsedData["worklogs"][] = $worklog;
+                        $parsedData["teamLogs"][$worklog->author->key][] = $worklog;
+                        $parsedData["totalSeconds"] += $worklog->timeSpentSeconds;
                     }
                 }
             }
+        }
 
-            usort($parsedData["worklogs"], function ($a, $b) {
-                if ($a->started == $b->started) {
-                    return 0;
-                }
-                return ($a->started < $b->started) ? -1 : 1;
-            });
-
-            foreach ($parsedData["teamLogs"] as $p => $logs) {
-                $total = 0;
-                foreach ($logs as $log) {
-                    $total += $log->timeSpentSeconds;
-                }
-                $parsedData["teamTotals"][$p] = $total;
+        usort($parsedData["worklogs"], function ($a, $b) {
+            if ($a->started == $b->started) {
+                return 0;
             }
+            return ($a->started < $b->started) ? -1 : 1;
+        });
 
-            return $parsedData;
-     }
+        foreach ($parsedData["teamLogs"] as $p => $logs) {
+            $total = 0;
+            foreach ($logs as $log) {
+                $total += $log->timeSpentSeconds;
+            }
+            $parsedData["teamTotals"][$p] = $total;
+        }
 
-     private function getIssues($server, $project, $from, $to) 
-     {
+        return $parsedData;
+    }
+
+    private function getIssues($server, $project, $from, $to)
+    {
         $service = new IssueService($this->getServerConfig($server));
         return $service->search($this->getWorklogQuery($project, $from, $to), 0, 1000, ['summary', 'worklog']);
-     }
+    }
 
-     private function getWorklogLink($server, $worklog)
-     {
-         return $server->getBaseUrl() . '/browse/' . $worklog->issue->key . '?focusedWorklogId=' . $worklog->id . 
+    private function getWorklogLink($server, $worklog)
+    {
+        return $server->getBaseUrl() . '/browse/' . $worklog->issue->key . '?focusedWorklogId=' . $worklog->id .
             '&page=com.atlassian.jira.plugin.system.issuetabpanels%3Aworklog-tabpanel#worklog-' . $worklog->id;
-     }
+    }
 
-     private function getIssueLink($server, $issueKey)
-     {
-         return $server->getBaseUrl() . '/browse/' . $issueKey;
-     }
+    private function getIssueLink($server, $issueKey)
+    {
+        return $server->getBaseUrl() . '/browse/' . $issueKey;
+    }
 }

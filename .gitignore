@@ -16,5 +16,7 @@
 /vendor/
 /web/bundles/
 .idea
+/web/bower_components/
+composer.lock
 report.csv
 web/bower_components
