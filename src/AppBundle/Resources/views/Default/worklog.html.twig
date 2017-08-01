@@ -19,8 +19,8 @@
         </button>
         <div class="dropdown-menu">
             {% for sprint in sprints %}
-            <a class="dropdown-item" href="#" onclick="loadEstadistica(moment(sprints[{{loop.index-1}}].startDate),
-                    moment(sprints[{{loop.index-1}}].endDate)); return false;"> {{ sprint.name }}</a>
+            <a class="dropdown-item" href="#" onclick="loadEstadistica(moment('{{sprint.startDate}}'),
+                    moment('{{sprint.endDate}}')); return false;"> {{ sprint.name }}</a>
             {% else %}
                 No sprints were found
             {% endfor %}
