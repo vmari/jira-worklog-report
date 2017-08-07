@@ -155,7 +155,7 @@ class DefaultController extends Controller
         // Get the users and group their worklogs
         $userWorklogs = array();
         foreach($data["worklogs"] as $worklog) {
-            $userName = $worklog->author->displayName;
+            $userName = $worklog->author->key;
             if (!in_array($userName, array_keys($userWorklogs))) {
                 $userWorklogs[$userName] = array();
             }
@@ -170,14 +170,8 @@ class DefaultController extends Controller
         }
 
         // Get the total time of each user
-        $totals = array();
-        foreach ($data["teamTotals"] as $total) {
-            array_push($totals, $total);
-        }
-        $index = 0;
         foreach (array_keys($userWorklogs) as $key) {
-            array_push($userWorklogs[$key], array("", "", "Total: " . number_format($totals[$index] / 60 / 60, 2) . "h", "", "" ));
-            $index++;
+            array_push($userWorklogs[$key], array("", "", "Total: " . number_format($data["teamTotals"][$key] / 60 / 60, 2) . "h", "", "" ));
         }
 
         // Get name headers
