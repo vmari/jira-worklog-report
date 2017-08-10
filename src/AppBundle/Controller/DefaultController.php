@@ -281,7 +281,7 @@ class DefaultController extends Controller
         }
         $jc = new JiraClient($this->getServerConfig($server));
 
-        $jc->api_uri = '/rest/agile/1.0';
+        $jc->setAPIUri('/rest/agile/1.0');
         $resp = $jc->exec('/board?projectKeyOrId='. $projectKeyName);
         $board = json_decode($resp);
 
@@ -306,7 +306,7 @@ class DefaultController extends Controller
 
         $jc = new JiraClient($this->getServerConfig($server));
 
-        $jc->api_uri = '/rest/agile/1.0';
+        $jc->setAPIUri('/rest/agile/1.0');
 
         $resp = $jc->exec('/board/' . $board->values[0]->id . '/sprint');
 
