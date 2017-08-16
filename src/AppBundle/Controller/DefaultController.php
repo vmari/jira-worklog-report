@@ -13,9 +13,18 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Psr\Log\LoggerInterface;
+use JiraRestApi\JiraClient;
 
 class DefaultController extends Controller
 {
+    private $logger;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
+
     /**
      * @Route("/", name="index")
      */
@@ -99,6 +108,7 @@ class DefaultController extends Controller
         try {
             $issues = $this->getIssues($server, $project, $from, $to);
             $data = $this->parseIssues($issues, $from, $to);
+            $sprints = $this->getSprints($server, $project);
         } catch (JiraException $e) {
             $this->addFlash('danger', 'Error, maybe project not exists.');
             return $this->redirectToRoute('index');
@@ -111,7 +121,8 @@ class DefaultController extends Controller
             'from' => $from,
             'to' => $to,
             'server' => $server,
-            'project' => $project
+            'project' => $project,
+            'sprints' => $sprints
         ));
     }
 
@@ -306,5 +317,67 @@ class DefaultController extends Controller
     private function getIssueLink($server, $issueKey)
     {
         return $server->getBaseUrl() . '/browse/' . $issueKey;
+    }
+
+    /**
+     * Get a board using the project short identification (e.g: "SYN" or "DOT")
+     *
+     * @param object   $server          The server configuration
+     * @param string   $projectKeyName  The project short identification (e.g: "SYN" or "DOT)
+     *
+     * @return object - Board information
+     */
+    private function getBoard($server, $projectKeyName)
+    {
+        if (!$server) {
+            return $this->redirectToRoute('index');
+        }
+        $jc = new JiraClient($this->getServerConfig($server));
+
+        $jc->setAPIUri('/rest/agile/1.0');
+        $resp = $jc->exec('/board?projectKeyOrId='. $projectKeyName);
+        $board = json_decode($resp);
+
+        return $board;
+    }
+
+    /**
+     * Get the sprints for a particular board.
+     *
+     * @param object   $server          The server configuration
+     * @param string   $projectKeyName  The project short identification (e.g: "SYN" or "DOT)
+     *
+     * @return associative array - Sprints information ordered by descending endDate.
+     */
+    private function getSprints($server, $projectKeyName)
+    {
+        if (!$server) {
+            return $this->redirectToRoute('index');
+        }
+
+        $board = $this->getBoard($server, $projectKeyName);
+
+        $jc = new JiraClient($this->getServerConfig($server));
+
+        $jc->setAPIUri('/rest/agile/1.0');
+
+        $resp = $jc->exec('/board/' . $board->values[0]->id . '/sprint');
+
+        $response = json_decode($resp,true);
+
+        $sprints = $response['values'];
+
+        foreach ($sprints as $sprint) {
+            $sprint['endDate'] = new \DateTime($sprint['endDate']);
+        }
+
+        usort($sprints, function ($sprint1, $sprint2) {
+            if($sprint1['endDate'] == $sprint2['endDate'])
+                return 0;
+
+            return ($sprint1['endDate'] < $sprint2['endDate']) ? 1 : -1;
+        });
+
+        return $sprints;
     }
 }
