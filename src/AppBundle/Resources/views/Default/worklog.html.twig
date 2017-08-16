@@ -11,25 +11,24 @@
             <b></b>
         </button>
     </span>
-
-    <!-- Small button groups (default and split) -->
+    {% if sprints is not empty %}
     <div class="btn-group pull-right mr-2">
-        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Sprints
-        </button>
-        <div class="dropdown-menu">
-            {% for sprint in sprints %}
-            <a class="dropdown-item" href="#" onclick="loadEstadistica(moment('{{sprint.startDate}}'),
-                    moment('{{sprint.endDate}}')); return false;"> {{ sprint.name }}</a>
-            {% else %}
-                No sprints were found
-            {% endfor %}
+            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Sprints
+            </button>
+            <div class="dropdown-menu">
+                {% for sprint in sprints %}
+                <a class="dropdown-item" href="#" onclick="loadEstadistica(moment('{{sprint.startDate}}'),
+                        moment('{{sprint.endDate}}')); return false;"> {{ sprint.name }}</a>
+                {% else %}
+                    No sprints were found
+                {% endfor %}
+            </div>
         </div>
-    </div>
 
-    <a href="#" class="btn btn-sm btn-secondary float-right mr-2" onclick="loadEstadistica(moment(sprints[0].startDate),
+        <a href="#" class="btn btn-sm btn-secondary float-right mr-2" onclick="loadEstadistica(moment(sprints[0].startDate),
             moment(sprints[0].endDate)); return false;">Last Sprint</a>
-
+    {% endif %}
     <h3>Logs in {{ project }}</h3>
     <table class="table table-striped">
         <thead>
