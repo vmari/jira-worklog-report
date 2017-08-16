@@ -11,6 +11,24 @@
             <b></b>
         </button>
     </span>
+    {% if sprints is not empty %}
+    <div class="btn-group float-right mr-2">
+            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Sprints
+            </button>
+            <div class="dropdown-menu">
+                {% for sprint in sprints %}
+                <a class="dropdown-item" href="#" onclick="loadEstadistica(moment('{{sprint.startDate}}'),
+                        moment('{{sprint.endDate}}')); return false;"> {{ sprint.name }}</a>
+                {% else %}
+                    No sprints were found
+                {% endfor %}
+            </div>
+        </div>
+
+        <a href="#" class="btn btn-sm btn-secondary float-right mr-2" onclick="loadEstadistica(moment(sprints[0].startDate),
+            moment(sprints[0].endDate)); return false;">Last Sprint</a>
+    {% endif %}
     <h3>Logs in {{ project }}</h3>
     <table class="table table-striped">
         <thead>
@@ -80,9 +98,12 @@
 <script type="text/javascript" src="{{ asset('bower_components/moment/min/moment.min.js') }}"></script>
 <script type="text/javascript" src="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.js') }}"></script>
 <script>
+
     dateRangePickerLocale = {
         "format": "YYYY-MM-DD"
     };
+
+    var sprints = {{ sprints|json_encode|raw }};
 
     function loadEstadistica(start, end) {
         window.location.replace("/{{ project }}/worklog/" + start.format('YYYY-MM-DD') + "/" + end.format('YYYY-MM-DD'));
@@ -101,7 +122,7 @@
                 'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
                 'Last week': [moment().subtract(6, 'days'), moment()],
                 'Last month': [moment().subtract(29, 'days'), moment()],
-                'This month': [moment().startOf('month'), moment().endOf('month')],
+                'This month': [moment().startOf('month'), moment().endOf('month')]
             },
             "locale": dateRangePickerLocale
         }, loadEstadistica);
