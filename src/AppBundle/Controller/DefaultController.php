@@ -378,6 +378,10 @@ class DefaultController extends Controller
             return ($sprint1['endDate'] < $sprint2['endDate']) ? 1 : -1;
         });
 
+        if(count($sprints) >= 5) {
+            $sprints = array_slice($sprints,0,5);
+        }
+
         return $sprints;
     }
 }
