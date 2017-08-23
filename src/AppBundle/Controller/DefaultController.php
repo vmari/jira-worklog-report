@@ -107,7 +107,7 @@ class DefaultController extends Controller
 
         try {
             $issues = $this->getIssues($server, $project, $from, $to);
-            $data = $this->parseIssues($issues, $from, $to);
+            $data = $this->parseIssues($server, $issues, $from, $to);
             $sprints = $this->getSprints($server, $project);
         } catch (JiraException $e) {
             $this->addFlash('danger', 'Error, maybe project not exists.');
@@ -157,23 +157,23 @@ class DefaultController extends Controller
 
         try {
             $issues = $this->getIssues($server, $project, $from, $to);
-            $data = $this->parseIssues($issues, $from, $to);
+            $data = $this->parseIssues($server, $issues, $from, $to);
         } catch (JiraException $e) {
             $this->addFlash('danger', 'Error, maybe project not exists.');
             return $this->redirectToRoute('index');
         }
-      
+
         // Get the users and group their worklogs
         $userWorklogs = array();
-        foreach($data["worklogs"] as $worklog) {
+        foreach ($data["worklogs"] as $worklog) {
             $userName = $worklog->author->key;
             if (!in_array($userName, array_keys($userWorklogs))) {
                 $userWorklogs[$userName] = array();
             }
             $userWorklog = array(
                 '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '","' . $worklog->id . '")',
-                '=HYPERLINK("'. $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
-                number_format(floatval($worklog->timeSpentSeconds) / 60 / 60,2,',',''),
+                '=HYPERLINK("' . $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
+                number_format(floatval($worklog->timeSpentSeconds) / 60 / 60, 2, ',', ''),
                 date_format($worklog->started, 'Y-m-d H:i'),
                 " "
             );
@@ -182,25 +182,25 @@ class DefaultController extends Controller
 
         // Get the total time of each user
         foreach (array_keys($userWorklogs) as $key) {
-            array_push($userWorklogs[$key], array("", "", "Total: " . number_format($data["teamTotals"][$key] / 60 / 60, 2) . "h", "", "" ));
+            array_push($userWorklogs[$key], array("", "", "Total: " . number_format($data["teamTotals"][$key] / 60 / 60, 2) . "h", "", ""));
         }
 
         // Get name headers
         $namesHeaders = [];
-        foreach(array_keys($userWorklogs) as $key) {
+        foreach (array_keys($userWorklogs) as $key) {
             array_push($namesHeaders, "", $key, "", "", "");
         }
 
         // Get the worklog headers
         $worklogHeaders = [];
-        foreach(array_keys($userWorklogs) as $key) {
+        foreach (array_keys($userWorklogs) as $key) {
             array_push($worklogHeaders, 'Worklog', 'Issue', 'Time Spent (h)', 'Started', " ");
         }
 
         // Put the headers
         fputcsv($fp, $namesHeaders);
         fputcsv($fp, $worklogHeaders);
-        
+
         // Get the max amount of worklogs (number of rows)
         $maxUserWorklogs = -1;
         foreach (array_keys($userWorklogs) as $key) {
@@ -211,26 +211,26 @@ class DefaultController extends Controller
 
         // Merge user's worklogs to create the rows
         $rowWorklogs = array();
-        for ($i=0; $i < $maxUserWorklogs; $i++) { 
+        for ($i = 0; $i < $maxUserWorklogs; $i++) {
             $rowWorklogs[$i] = array();
             foreach (array_keys($userWorklogs) as $key) {
                 $worklog = array_shift($userWorklogs[$key]);
                 if (is_null($worklog)) {
-                    $worklog = array("","","","","");
+                    $worklog = array("", "", "", "", "");
                 }
                 $rowWorklogs[$i] = array_merge($rowWorklogs[$i], $worklog);
             }
         }
 
         // Put the worklogs (rows)
-        for ($i=0; $i < $maxUserWorklogs; $i++) { 
+        for ($i = 0; $i < $maxUserWorklogs; $i++) {
             fputcsv($fp, $rowWorklogs[$i]);
-        } 
+        }
 
         fseek($fp, 0);
 
         $csv = stream_get_contents($fp);
-      
+
         fclose($fp);
         $csv = mb_convert_encoding($csv, "UTF-8");
 
@@ -258,7 +258,7 @@ class DefaultController extends Controller
         ));
     }
 
-    private function parseIssues($issues, $from, $to)
+    private function parseIssues($server, $issues, $from, $to)
     {
         $parsedData = array(
             "teamTotals" => array(),
@@ -267,8 +267,15 @@ class DefaultController extends Controller
             "teamLogs" => array()
         );
 
+        $service = new IssueService($this->getServerConfig($server));
+
         foreach ($issues->issues as $issue) {
             if ($issue->fields->worklog) {
+
+                if($issue->fields->worklog->maxResults <= $issue->fields->worklog->total){
+                    $issue->fields->worklog = $service->getWorklog($issue->key);
+                }
+
                 foreach ($issue->fields->worklog->worklogs as $worklog) {
                     $worklog->created = new \DateTime($worklog->created);
                     $worklog->updated = new \DateTime($worklog->updated);
@@ -322,8 +329,8 @@ class DefaultController extends Controller
     /**
      * Get a board using the project short identification (e.g: "SYN" or "DOT")
      *
-     * @param object   $server          The server configuration
-     * @param string   $projectKeyName  The project short identification (e.g: "SYN" or "DOT)
+     * @param object $server The server configuration
+     * @param string $projectKeyName The project short identification (e.g: "SYN" or "DOT)
      *
      * @return object - Board information
      */
@@ -335,7 +342,7 @@ class DefaultController extends Controller
         $jc = new JiraClient($this->getServerConfig($server));
 
         $jc->setAPIUri('/rest/agile/1.0');
-        $resp = $jc->exec('/board?projectKeyOrId='. $projectKeyName);
+        $resp = $jc->exec('/board?projectKeyOrId=' . $projectKeyName);
         $board = json_decode($resp);
 
         return $board;
@@ -344,8 +351,8 @@ class DefaultController extends Controller
     /**
      * Get the sprints for a particular board.
      *
-     * @param object   $server          The server configuration
-     * @param string   $projectKeyName  The project short identification (e.g: "SYN" or "DOT)
+     * @param object $server The server configuration
+     * @param string $projectKeyName The project short identification (e.g: "SYN" or "DOT)
      *
      * @return associative array - Sprints information ordered by descending endDate.
      */
@@ -363,7 +370,7 @@ class DefaultController extends Controller
 
         $resp = $jc->exec('/board/' . $board->values[0]->id . '/sprint');
 
-        $response = json_decode($resp,true);
+        $response = json_decode($resp, true);
 
         $sprints = $response['values'];
 
@@ -372,14 +379,14 @@ class DefaultController extends Controller
         }
 
         usort($sprints, function ($sprint1, $sprint2) {
-            if($sprint1['endDate'] == $sprint2['endDate'])
+            if ($sprint1['endDate'] == $sprint2['endDate'])
                 return 0;
 
             return ($sprint1['endDate'] < $sprint2['endDate']) ? 1 : -1;
         });
 
-        if(count($sprints) >= 5) {
-            $sprints = array_slice($sprints,0,5);
+        if (count($sprints) >= 5) {
+            $sprints = array_slice($sprints, 0, 5);
         }
 
         return $sprints;
