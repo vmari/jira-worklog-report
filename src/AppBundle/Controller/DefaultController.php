@@ -171,8 +171,8 @@ class DefaultController extends Controller
                 $userWorklogs[$userName] = array();
             }
             $userWorklog = array(
-                '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '","' . $worklog->id . '")',
-                '=HYPERLINK("' . $this->getIssueLink($server, $worklog->issue->key) . '","' . $worklog->issue->key . '")',
+                '=HYPERLINK("' . $this->getWorklogLink($server, $worklog) . '";"' . $worklog->id . '")',
+                '=HYPERLINK("' . $this->getIssueLink($server, $worklog->issue->key) . '";"' . $worklog->issue->key . '")',
                 number_format(floatval($worklog->timeSpentSeconds) / 60 / 60, 2, ',', ''),
                 date_format($worklog->started, 'Y-m-d H:i'),
                 " "
