@@ -244,8 +244,9 @@ class DefaultController extends Controller
 
     private function getWorklogQuery($project, \DateTime $from, \DateTime $to)
     {
+        $tmp = clone $to;
         return 'project = ' . $project . ' and created <= "' .
-            $to->add(new \DateInterval("P5D"))->format('Y-m-d') . '" and updated >= "' .
+            $tmp->add(new \DateInterval("P5D"))->format('Y-m-d') . '" and updated >= "' .
             $from->format('Y-m-d') . '" and timespent > 0';
     }
 
