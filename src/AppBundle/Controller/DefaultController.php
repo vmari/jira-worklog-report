@@ -245,7 +245,7 @@ class DefaultController extends Controller
     private function getWorklogQuery($project, \DateTime $from, \DateTime $to)
     {
         return 'project = ' . $project . ' and created <= "' .
-            $to->format('Y-m-d') . '" and updated >= "' .
+            $to->add(new \DateInterval("P5D"))->format('Y-m-d') . '" and updated >= "' .
             $from->format('Y-m-d') . '" and timespent > 0';
     }
 
@@ -272,11 +272,12 @@ class DefaultController extends Controller
         foreach ($issues->issues as $issue) {
             if ($issue->fields->worklog) {
 
-                if($issue->fields->worklog->maxResults <= $issue->fields->worklog->total){
+                if ($issue->fields->worklog->maxResults <= $issue->fields->worklog->total) {
                     $issue->fields->worklog = $service->getWorklog($issue->key);
                 }
 
                 foreach ($issue->fields->worklog->worklogs as $worklog) {
+                    $worklog = json_decode(json_encode($worklog, false));
                     $worklog->created = new \DateTime($worklog->created);
                     $worklog->updated = new \DateTime($worklog->updated);
                     $worklog->started = new \DateTime($worklog->started);
