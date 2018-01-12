@@ -8,7 +8,6 @@ use JiraRestApi\Issue\IssueService;
 use JiraRestApi\JiraClient;
 use JiraRestApi\JiraException;
 use JiraRestApi\Project\ProjectService;
-use Symfony\Component\HttpFoundation\Request;
 
 class WorklogService {
 
@@ -87,123 +86,6 @@ class WorklogService {
     }
 
     return $data;
-  }
-
-  public function exportAction( Request $request, $project, \DateTime $from = null, \DateTime $to = null ) {
-    if ( ! $from ) {
-      /** @var \DateTime $from */
-      $from = new \DateTime( 'now' );
-    }
-
-    if ( ! $to ) {
-      /** @var \DateTime $to */
-      $to = new \DateTime( 'now' );
-    }
-
-    $from->setTime( 0, 0 );
-    $to->setTime( 23, 59, 59 );
-
-    /** @var JiraServer $server */
-    $server = $request->getSession()->get( 'server' );
-    $fp     = fopen( 'php://memory', 'w' );
-
-    if ( ! $server ) {
-      return $this->redirectToRoute( 'index' );
-    }
-
-    try {
-      $issues = $this->getIssues( $server, $project, $from, $to );
-      $data   = $this->parseIssues( $server, $issues, $from, $to );
-    } catch ( JiraException $e ) {
-      $this->addFlash( 'danger', 'Error, maybe project not exists.' );
-
-      return $this->redirectToRoute( 'index' );
-    }
-
-    // Get the users and group their worklogs
-    $userWorklogs = array();
-    foreach ( $data["worklogs"] as $worklog ) {
-      $userName = $worklog->author->key;
-      if ( ! in_array( $userName, array_keys( $userWorklogs ) ) ) {
-        $userWorklogs[ $userName ] = array();
-      }
-      $userWorklog = array(
-        '=HYPERLINK("' . $this->getWorklogLink( $server, $worklog ) . '";"' . $worklog->id . '")',
-        '=HYPERLINK("' . $this->getIssueLink( $server, $worklog->issue->key ) . '";"' . $worklog->issue->key . '")',
-        number_format( floatval( $worklog->timeSpentSeconds ) / 60 / 60, 2, ',', '' ),
-        date_format( $worklog->started, 'Y-m-d H:i' ),
-        " "
-      );
-      array_push( $userWorklogs[ $userName ], $userWorklog );
-    }
-
-    // Get the total time of each user
-    foreach ( array_keys( $userWorklogs ) as $key ) {
-      array_push( $userWorklogs[ $key ], array(
-        "",
-        "",
-        "Total: " . number_format( $data["teamTotals"][ $key ] / 60 / 60, 2 ) . "h",
-        "",
-        ""
-      ) );
-    }
-
-    // Get name headers
-    $namesHeaders = [];
-    foreach ( array_keys( $userWorklogs ) as $key ) {
-      array_push( $namesHeaders, "", $key, "", "", "" );
-    }
-
-    // Get the worklog headers
-    $worklogHeaders = [];
-    foreach ( array_keys( $userWorklogs ) as $key ) {
-      array_push( $worklogHeaders, 'Worklog', 'Issue', 'Time Spent (h)', 'Started', " " );
-    }
-
-    // Put the headers
-    fputcsv( $fp, $namesHeaders );
-    fputcsv( $fp, $worklogHeaders );
-
-    // Get the max amount of worklogs (number of rows)
-    $maxUserWorklogs = - 1;
-    foreach ( array_keys( $userWorklogs ) as $key ) {
-      if ( sizeof( $userWorklogs[ $key ] ) > $maxUserWorklogs ) {
-        $maxUserWorklogs = sizeof( $userWorklogs[ $key ] );
-      }
-    }
-
-    // Merge user's worklogs to create the rows
-    $rowWorklogs = array();
-    for ( $i = 0; $i < $maxUserWorklogs; $i ++ ) {
-      $rowWorklogs[ $i ] = array();
-      foreach ( array_keys( $userWorklogs ) as $key ) {
-        $worklog = array_shift( $userWorklogs[ $key ] );
-        if ( is_null( $worklog ) ) {
-          $worklog = array( "", "", "", "", "" );
-        }
-        $rowWorklogs[ $i ] = array_merge( $rowWorklogs[ $i ], $worklog );
-      }
-    }
-
-    // Put the worklogs (rows)
-    for ( $i = 0; $i < $maxUserWorklogs; $i ++ ) {
-      fputcsv( $fp, $rowWorklogs[ $i ] );
-    }
-
-    fseek( $fp, 0 );
-
-    $csv = stream_get_contents( $fp );
-
-    fclose( $fp );
-    $csv = mb_convert_encoding( $csv, "UTF-8" );
-
-    $response = new Response( $csv );
-    $filename = $from->format( 'd-m-Y' ) . '-' . $to->format( 'd-m-Y' ) . '.csv';
-    $response->headers->set( 'Content-Disposition', sprintf( 'attachment; filename="%s";', $filename ) );
-    $response->headers->set( 'Content-Type', 'text/csv; charset=utf-8' );
-
-    return $response;
-
   }
 
   private function getWorklogQuery( $project, \DateTime $from, \DateTime $to ) {
