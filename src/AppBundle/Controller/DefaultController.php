@@ -187,7 +187,6 @@ class DefaultController extends Controller {
 
       return $response;
     } else {
-      dump( $data );
       return $this->render( 'AppBundle:Default:worklog.html.twig', $data );
     }
   }
