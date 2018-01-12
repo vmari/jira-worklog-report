@@ -1,0 +1,5 @@
+services:
+    worklog:
+        class: AppBundle\Services\WorklogService
+    export_service:
+        class: AppBundle\Services\ExportService
