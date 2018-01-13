@@ -1,141 +1,144 @@
 {% extends 'base.html.twig' %}
 
 {% block body %}
-<br>
-<div class="container">
-    <div class="clearfix">
-        <a href="{{ path('index') }}" class="btn btn-sm btn-secondary float-right">Exit</a>
-        {% if logs.worklogs is not empty %}
-            <a href="{{ path('worklog',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d'), format:'csv' }) }}"
-               class="btn btn-sm btn-secondary float-right mr-2"><span class="glyphicon glyphicon-download-alt"></span> CSV</a>
-            <a href="{{ path('worklog',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d'), format:'xls' }) }}"
-               class="btn btn-sm btn-secondary float-right mr-2"><span class="glyphicon glyphicon-download-alt"></span> XLS</a>
-        {% endif %}
-        <span class="float-right mr-2">
+    <br>
+    <div class="container">
+        <div class="clearfix">
+            <a href="{{ path('index') }}" class="btn btn-sm btn-secondary float-right">Exit</a>
+            {% if logs.worklogs is not empty %}
+                <a href="{{ path('worklog',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d'), format:'csv' }) }}"
+                   class="btn btn-sm btn-secondary float-right mr-2"><span
+                            class="glyphicon glyphicon-download-alt"></span> CSV</a>
+                <a href="{{ path('worklog',{ project:project, from:from|date('Y-m-d') , to:to|date('Y-m-d'), format:'xls' }) }}"
+                   class="btn btn-sm btn-secondary float-right mr-2"><span
+                            class="glyphicon glyphicon-download-alt"></span> XLS</a>
+            {% endif %}
+            <span class="float-right mr-2">
             <button class="btn btn-primary btn-sm" id="daterange">
                 <span class="glyphicon glyphicon-calendar"></span>
                 <b></b>
             </button>
         </span>
-        <h3>{{ project }} {% if sprint is defined and sprint is not null %} - {{ sprint.name }}{% endif %}</h3>
-    </div>
+            <h4>{{ project }} - {% if sprint is defined and sprint is not null %}
+                    {{ sprint.name }}
+                    <span class="badge badge-pill {% if sprint.state == 'active' %}badge-success{% elseif sprint.state == 'closed' %}badge-danger{% else %}badge-default{% endif %}">{{ sprint.state }}</span>
+                {% else %}Custom range{% endif %}</h4>
+        </div>
 
-    {% if logs.worklogs is not empty %}
-        <br>
-    <h4>Totals</h4>
-    <table class="table">
-        <thead>
-        <tr>
-            <th>User</th>
-            <th>Time spent</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for user, seconds in logs.teamTotals %}
-            <tr>
-                <td>{{ user }}</td>
-                <td>{{ (seconds / 60 / 60)|number_format(2) }}h</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-        <tfoot>
-        <tr>
-            <th>Total</th>
-            <th>{{ (logs.totalSeconds / 60 / 60)|number_format(2) }}h</th>
-        </tr>
-        </tfoot>
-    </table>
-    {% endif %}
+        {% if logs.worklogs is not empty %}
+            <br>
+            <h5>Totals</h5>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Time spent</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for user, seconds in logs.teamTotals %}
+                    <tr>
+                        <td>{{ user }}</td>
+                        <td>{{ (seconds / 60 / 60)|number_format(2) }}h</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th>{{ (logs.totalSeconds / 60 / 60)|number_format(2) }}h</th>
+                </tr>
+                </tfoot>
+            </table>
+        {% endif %}
 
         <br>
-    <h4>Details</h4>
-    <table class="table table-striped">
-        <thead>
+        <h5>Details</h5>
+        <table class="table table-striped">
+            <thead>
             <tr>
                 <th>Worklog ID</th>
                 <th>Issue</th>
                 <th>Author</th>
-                <th>Time spent</th>
                 <th>Started</th>
+                <th>Time spent</th>
             </tr>
-        </thead>
-        <tbody>
+            </thead>
+            <tbody>
             {% for worklog in logs.worklogs %}
-            <tr>
-                <th>
-                    <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}?focusedWorklogId={{ worklog.id }}&page=com.atlassian.jira.plugin.system.issuetabpanels%3Aworklog-tabpanel#worklog-{{ worklog.id }}"
-                        target="_blank" title="{{ worklog.comment }}">
+                <tr>
+                    <th>
+                        <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}?focusedWorklogId={{ worklog.id }}&page=com.atlassian.jira.plugin.system.issuetabpanels%3Aworklog-tabpanel#worklog-{{ worklog.id }}"
+                           target="_blank" title="{{ worklog.comment }}">
                             {{ worklog.id }}
                         </a>
-                </th>
-                <td>
-                    <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}" target="_blank" title="{{ worklog.issue.fields.summary }}">
+                    </th>
+                    <td>
+                        <a href="{{ server.baseUrl }}/browse/{{ worklog.issue.key }}" target="_blank"
+                           title="{{ worklog.issue.fields.summary }}">
                             {{ worklog.issue.key }}
                         </a>
-                </td>
-                <td><span title="{{ worklog.author.displayName }}">{{ worklog.author.key }}</span></td>
-                <td>{{ worklog.timeSpent }}</td>
-                <td>{{ worklog.started|date('d/m/Y H:i') }}</td>
-            </tr>
+                    </td>
+                    <td><span title="{{ worklog.author.displayName }}">{{ worklog.author.key }}</span></td>
+                    <td>{{ worklog.started|date('d/m/Y H:i') }}</td>
+                    <td>{{ worklog.timeSpent }}</td>
+                </tr>
             {% else %}
-            <tr>
-                <td colspan="5">
-                    <p class="text-center lead font-weight-bold">
-                        logs not found
-                    </p>
-                </td>
-            </tr>
+                <tr>
+                    <td colspan="5">
+                        <p class="text-center lead font-weight-bold">
+                            logs not found
+                        </p>
+                    </td>
+                </tr>
             {% endfor %}
-        </tbody>
-    </table>
-</div>
+            </tbody>
+        </table>
+    </div>
 {% endblock %} {% block javascripts %} {{ parent() }}
-<script type="text/javascript" src="{{ asset('bower_components/moment/min/moment.min.js') }}"></script>
-<script type="text/javascript" src="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.js') }}"></script>
-<script>
-    var sprints = {{ sprints|json_encode|raw }};
+    <script type="text/javascript" src="{{ asset('bower_components/moment/min/moment.min.js') }}"></script>
+    <script type="text/javascript"
+            src="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.js') }}"></script>
+    <script>
+      var sprints = {{ sprints|json_encode|raw }};
 
-    var ranges = {};
+      var ranges = {};
 
-    for( var i = 0 ; i < sprints.length ; i++){
-      var d1 = moment(sprints[i].startDate.date);
-      var d2 = moment(sprints[i].endDate.date);
-      ranges[sprints[i].name + ' ' + d1.format('D/MM') + '-' + d2.format('D/MM')] = [d1, d2];
-    }
+      for (var i = 0; i < sprints.length; i++) {
+        var d1 = moment(sprints[i].startDate.date);
+        var d2 = moment(sprints[i].endDate.date);
+        ranges[sprints[i].name + ' ' + d1.format('D/MM') + '-' + d2.format('D/MM')] = [d1, d2];
+      }
 
-    function loadEstadistica(start, end, label) {
+      function loadEstadistica(start, end, label) {
         window.location.replace("/{{ project }}/worklog/" + start.format('YYYY-MM-DD') + "/" + end.format('YYYY-MM-DD'));
-    }
+      }
 
-    $(document).ready(function () {
+      $(document).ready(function () {
         var start = moment("{{ from|date('Y-m-d') }}");
         var end = moment("{{ to|date('Y-m-d') }}");
         $('#daterange b').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
         $('#daterange').daterangepicker({
-            startDate: start,
-            endDate: end,
-            autoUpdateInput: false,
-            opens: 'left',
-            ranges: ranges/*{
+          startDate: start,
+          endDate: end,
+          autoUpdateInput: false,
+          opens: 'left',
+          ranges: ranges/*{
                 'Today': [moment(), moment()],
                 'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
                 'Last week': [moment().subtract(6, 'days'), moment()],
                 'Last month': [moment().subtract(29, 'days'), moment()],
                 'This month': [moment().startOf('month'), moment().endOf('month')]
             }*/,
-            locale: {
-              format: "YYYY-MM-DD"
-            }
+          locale: {
+            format: "YYYY-MM-DD"
+          }
         }, loadEstadistica);
-    });
-</script>
+      });
+    </script>
 {% endblock %}
 {% block stylesheets %}
     {{ parent() }}
-    <style>
-        .collapsing {
-            width: 100%;
-        }
-    </style>
-    <link type="text/css" rel="stylesheet" href="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.css') }}"/>
+    <link type="text/css" rel="stylesheet"
+          href="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.css') }}"/>
 {% endblock %}

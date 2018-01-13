@@ -62,34 +62,6 @@ class DefaultController extends Controller {
   }
 
   /**
-   * @Route("/{project}/sprint/{id}", name="sprint")
-   */
-  public function sprintAction( Request $request, $project, $id ) {
-    /** @var JiraServer $server */
-    $server = $request->getSession()->get( 'server' );
-
-    if ( ! $server ) {
-      return $this->redirectToRoute( 'index' );
-    }
-
-    try {
-      $ws     = $this->get( 'worklog' );
-      $sprint = $ws->getSprint( $server, $id );
-    } catch ( JiraException $e ) {
-      $this->addFlash( 'danger', 'Error, maybe project or sprint not exists.' );
-
-      return $this->redirectToRoute( 'index' );
-    }
-
-    return $this->forward( 'AppBundle:Default:worklog', array(
-      'project' => $project,
-      'from'    => $sprint->startDate->format( 'Y-m-d' ),
-      'to'      => $sprint->endDate->format( 'Y-m-d' ),
-      'sprint'  => $sprint
-    ) );
-  }
-
-  /**
    * @Route("/{project}/worklog/{from}/{to}", name="worklog")
    *
    * @ParamConverter("from", options={"format": "Y-m-d"})
@@ -154,7 +126,12 @@ class DefaultController extends Controller {
       $exportService = $this->get( 'export_service' );
 
       $response = new Response( $exportService->getFile( $data, $format ) );
-      $filename = 'export.xls';
+      $filename = $project;
+      if ( $sprint ) {
+        $filename .= '_' . $sprint->name;
+      }
+      $filename .= '_' . $from->format( 'd-m-Y' ) . '-' . $to->format( 'd-m-Y' );
+      $filename .= '.xls';
       $response->headers->set( 'Content-Disposition', sprintf( 'attachment; filename="%s";', $filename ) );
       $response->headers->set( 'Content-Type', 'application/vnd.ms-excel; charset=utf-8' );
 
@@ -163,7 +140,12 @@ class DefaultController extends Controller {
       $exportService = $this->get( 'export_service' );
 
       $response = new Response( $exportService->getFile( $data, $format ) );
-      $filename = 'export.csv';
+      $filename = $project;
+      if ( $sprint ) {
+        $filename .= '_' . $sprint->name;
+      }
+      $filename .= '_' . $from->format( 'd-m-Y' ) . '-' . $to->format( 'd-m-Y' );
+      $filename .= '.csv';
       $response->headers->set( 'Content-Disposition', sprintf( 'attachment; filename="%s";', $filename ) );
       $response->headers->set( 'Content-Type', 'text/csv; charset=utf-8' );
 
@@ -172,7 +154,12 @@ class DefaultController extends Controller {
       $exportService = $this->get( 'export_service' );
 
       $response = new Response( $exportService->getFile( $data, $format ) );
-      $filename = 'export.pdf';
+      $filename = $project;
+      if ( $sprint ) {
+        $filename .= '_' . $sprint->name;
+      }
+      $filename .= '_' . $from->format( 'd-m-Y' ) . '-' . $to->format( 'd-m-Y' );
+      $filename .= '.pdf';
       $response->headers->set( 'Content-Disposition', sprintf( 'attachment; filename="%s";', $filename ) );
       $response->headers->set( 'Content-Type', 'application/pdf; charset=utf-8' );
 
@@ -181,12 +168,18 @@ class DefaultController extends Controller {
       $exportService = $this->get( 'export_service' );
 
       $response = new Response( $exportService->getFile( $data, $format ) );
-      $filename = 'export.xlsx';
+      $filename = $project;
+      if ( $sprint ) {
+        $filename .= '_' . $sprint->name;
+      }
+      $filename .= '_' . $from->format( 'd-m-Y' ) . '-' . $to->format( 'd-m-Y' );
+      $filename .= '.xlsx';
       $response->headers->set( 'Content-Disposition', sprintf( 'attachment; filename="%s";', $filename ) );
       $response->headers->set( 'Content-Type', 'application/vnd.ms-excel; charset=utf-8' );
 
       return $response;
     } else {
+      dump( $data );
       return $this->render( 'AppBundle:Default:worklog.html.twig', $data );
     }
   }

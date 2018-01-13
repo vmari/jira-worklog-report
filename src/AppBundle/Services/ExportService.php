@@ -25,6 +25,10 @@ class ExportService {
       $this->writeUser( $sheet, $user, $logs, $data['logs']['teamTotals'][ $user ] );
     }
 
+    for ( $c = 'A', $i = 1; $i < $this->pointer[0]; $i ++, $c ++ ) {
+      $sheet->getColumnDimension( $c )->setAutoSize( true );
+    }
+
     switch ( $format ) {
       case 'xls':
         $writerClass = Xls::class;
