@@ -68,18 +68,6 @@ class DefaultController extends Controller {
    * @ParamConverter("to", options={"format": "Y-m-d"})
    */
   public function worklogAction( Request $request, $project, \DateTime $from = null, \DateTime $to = null ) {
-    if ( ! $from ) {
-      /** @var \DateTime $from */
-      $from = new \DateTime( 'now' );
-    }
-
-    if ( ! $to ) {
-      /** @var \DateTime $to */
-      $to = New \DateTime( 'now' );
-    }
-
-    $from->setTime( 0, 0 );
-    $to->setTime( 23, 59, 59 );
 
     /** @var JiraServer $server */
     $server = $request->getSession()->get( 'server' );
@@ -93,7 +81,29 @@ class DefaultController extends Controller {
 
     try {
       $sprints = $ws->getSprints( $server, $project );
-      $logs    = $ws->getWorklogs( $server, $project, $from, $to );
+
+      if ( ! $from ) {
+        /** @var \DateTime $from */
+        if ( $sprints ) {
+          $from = clone $sprints[0]->startDate;
+        } else {
+          $from = new \DateTime( 'now' );
+        }
+      }
+
+      if ( ! $to ) {
+        /** @var \DateTime $to */
+        if ( $sprints ) {
+          $to = clone $sprints[0]->endDate;
+        } else {
+          $to = new \DateTime( 'now' );
+        }
+      }
+
+      $from->setTime( 0, 0, 1 );
+      $to->setTime( 23, 59, 59 );
+
+      $logs = $ws->getWorklogs( $server, $project, $from, $to );
     } catch ( JiraException $e ) {
       $this->addFlash( 'danger', 'Error, maybe project not exists.' );
 

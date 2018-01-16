@@ -100,7 +100,7 @@
     <script type="text/javascript"
             src="{{ asset('bower_components/bootstrap-daterangepicker/daterangepicker.js') }}"></script>
     <script>
-      var sprints = {{ sprints|json_encode|raw }};
+      var sprints = {{ sprints[:5]|json_encode|raw }};
 
       var ranges = {};
 

@@ -38,9 +38,12 @@ class WorklogService {
     $response = json_decode( $resp );
     $sprints  = $response->values;
 
+    $tz = new \DateTimeZone( "America/Argentina/Buenos_Aires" );
     foreach ( $sprints as $sprint ) {
       $sprint->startDate = new \DateTime( $sprint->startDate );
       $sprint->endDate   = new \DateTime( $sprint->endDate );
+      $sprint->startDate->setTimezone( $tz );
+      $sprint->endDate->setTimezone( $tz );
     }
 
     usort( $sprints, function ( $sprint1, $sprint2 ) {
