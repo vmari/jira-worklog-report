@@ -18,7 +18,9 @@ class JiraServerType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('baseURL', UrlType::class)
+            ->add('baseURL', UrlType::class, array(
+              'data' => 'https://ubykuo.atlassian.net'
+            ))
             ->add('username', TextType::class)
             ->add('passwd', PasswordType::class);
     }
