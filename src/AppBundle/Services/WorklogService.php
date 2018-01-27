@@ -28,31 +28,36 @@ class WorklogService {
    * @return array - Sprints information ordered by descending endDate.
    */
   public function getSprints( $server, $projectKeyName ) {
-    $jc = new JiraClient( $this->getServerConfig( $server ) );
-    $jc->setAPIUri( '/rest/agile/1.0' );
+    try {
 
-    $resp  = $jc->exec( '/board?projectKeyOrId=' . $projectKeyName );
-    $board = json_decode( $resp );
+      $jc = new JiraClient( $this->getServerConfig( $server ) );
+      $jc->setAPIUri( '/rest/agile/1.0' );
 
-    $resp     = $jc->exec( '/board/' . $board->values[0]->id . '/sprint' );
-    $response = json_decode( $resp );
-    $sprints  = $response->values;
+      $resp  = $jc->exec( '/board?projectKeyOrId=' . $projectKeyName );
+      $board = json_decode( $resp );
 
-    $tz = new \DateTimeZone( "America/Argentina/Buenos_Aires" );
-    foreach ( $sprints as $sprint ) {
-      $sprint->startDate = new \DateTime( $sprint->startDate );
-      $sprint->endDate   = new \DateTime( $sprint->endDate );
-      $sprint->startDate->setTimezone( $tz );
-      $sprint->endDate->setTimezone( $tz );
-    }
+      $resp     = $jc->exec( '/board/' . $board->values[0]->id . '/sprint' );
+      $response = json_decode( $resp );
+      $sprints  = $response->values;
 
-    usort( $sprints, function ( $sprint1, $sprint2 ) {
-      if ( $sprint1->endDate == $sprint2->endDate ) {
-        return 0;
+      $tz = new \DateTimeZone( "America/Argentina/Buenos_Aires" );
+      foreach ( $sprints as $sprint ) {
+        $sprint->startDate = new \DateTime( $sprint->startDate );
+        $sprint->endDate   = new \DateTime( $sprint->endDate );
+        $sprint->startDate->setTimezone( $tz );
+        $sprint->endDate->setTimezone( $tz );
       }
 
-      return ( $sprint1->endDate < $sprint2->endDate ) ? 1 : - 1;
-    } );
+      usort( $sprints, function ( $sprint1, $sprint2 ) {
+        if ( $sprint1->endDate == $sprint2->endDate ) {
+          return 0;
+        }
+
+        return ( $sprint1->endDate < $sprint2->endDate ) ? 1 : - 1;
+      } );
+    } catch ( JiraException $e ) {
+      return array();
+    }
 
     return $sprints;
   }
